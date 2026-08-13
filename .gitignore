@@ -1,0 +1,27 @@
+.DS_Store
+.idea/
+.vscode/
+
+# Local secrets and generated runtime files
+.env
+.env.*
+!.env.example
+agentcore/.env.local
+
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Node / CDK
+node_modules/
+cdk.out/
+
+# Local data
+.local/
+tmp/
+data/
+
+# Local test and report output
+coverage/
+reports/

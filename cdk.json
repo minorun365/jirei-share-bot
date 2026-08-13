@@ -1,0 +1,21 @@
+{
+  "app": "npx tsx bin/jirei-share-bot.ts",
+  "context": {
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
+    "region": "ap-northeast-1",
+    "projectTag": "jirei-share-bot",
+    "targetChannelId": "C0123456789",
+    "slackWorkspaceUrl": "",
+    "bedrockModelId": "REPLACE_WITH_BEDROCK_INFERENCE_PROFILE_ID",
+    "bedrockModelDisplayName": "Amazon Bedrock model",
+    "dailyShareSchedule": "cron(0 12 ? * MON-FRI *)",
+    "dailyShareTimezone": "Asia/Tokyo",
+    "tavilySearchEnabled": "false",
+    "externalUrlFetchEnabled": "false",
+    "googleDriveEnabled": "false",
+    "graphicGenerationEnabled": "false",
+    "googleCloudProject": "",
+    "googleCloudLocation": "global",
+    "googleImageModelId": ""
+  }
+}

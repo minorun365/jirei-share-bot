@@ -1,0 +1,38 @@
+{
+  "name": "jirei-share-bot",
+  "version": "0.1.0",
+  "description": "Slackの会話から社内事例を登録・検索・定期共有するセルフホスト型Bot",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "check:public": "bash scripts/check-public.sh",
+    "cdk": "cdk",
+    "synth": "cdk synth --strict"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agentcore": "^3.1078.0",
+    "@aws-sdk/client-dynamodb": "^3.1077.0",
+    "@aws-sdk/client-lambda": "^3.1081.0",
+    "@aws-sdk/client-s3": "^3.1077.0",
+    "@aws-sdk/client-sqs": "3.1081.0",
+    "@aws-sdk/client-ssm": "3.1077.0",
+    "@aws-sdk/lib-dynamodb": "^3.1077.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.162",
+    "@types/node": "26.1.0",
+    "aws-cdk": "2.1136.0",
+    "aws-cdk-lib": "2.264.0",
+    "constructs": "10.6.0",
+    "esbuild": "0.28.1",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}
