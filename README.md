@@ -49,7 +49,7 @@ flowchart LR
 ### 1. 取得と依存関係のインストール
 
 ```sh
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/minorun365/jirei-share-bot.git
 cd jirei-share-bot
 npm ci
 ```

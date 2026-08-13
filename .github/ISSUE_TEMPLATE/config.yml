@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/REPLACE_WITH_OWNER/REPLACE_WITH_REPOSITORY/security/advisories/new
-    about: Report vulnerabilities privately after replacing this URL with the public repository URL.
+    url: https://github.com/minorun365/jirei-share-bot/security/advisories/new
+    about: Report vulnerabilities privately through GitHub Security Advisories.
