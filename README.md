@@ -170,4 +170,4 @@ uv run --with-requirements agentcore-runtime/requirements-dev.txt \
 
 Apache License 2.0です。詳しくは [LICENSE](LICENSE) を確認してください。
 
-Copyright 2026 KDDI Agile Development Center Corporation.
+Copyright 2026 Minoru Onda.
