@@ -24,14 +24,14 @@ aws-requests-auth==0.4.3
     # via strands-agents-tools
 beautifulsoup4==4.15.0
     # via markdownify
-bedrock-agentcore==1.21.0
-    # via -r agentcore-runtime/requirements.in
-boto3==1.43.70
+bedrock-agentcore==1.24.2
+    # via -r requirements.in
+boto3==1.43.118
     # via
-    #   -r agentcore-runtime/requirements.in
+    #   -r requirements.in
     #   bedrock-agentcore
     #   strands-agents
-botocore==1.43.70
+botocore==1.43.118
     # via
     #   bedrock-agentcore
     #   boto3
@@ -43,14 +43,12 @@ certifi==2026.7.22
     #   httpcore
     #   httpx
     #   requests
-cffi==2.1.1 ; platform_python_implementation != 'PyPy'
+cffi==2.1.1
     # via cryptography
 charset-normalizer==3.5.0
     # via requests
 click==8.4.2
     # via uvicorn
-colorama==0.4.6 ; sys_platform == 'win32'
-    # via click
 cryptography==50.0.0
     # via
     #   google-auth
@@ -61,14 +59,16 @@ distro==1.9.0
     # via google-genai
 docstring-parser==0.18.0
     # via strands-agents
+flatbuffers==25.12.19
+    # via onnxruntime
 frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-google-auth==2.56.3
+google-auth[requests]==2.56.3
     # via google-genai
-google-genai==2.18.0
-    # via -r agentcore-runtime/requirements.in
+google-genai==2.32.0
+    # via -r requirements.in
 greenlet==3.5.5
     # via playwright
 h11==0.16.0
@@ -116,6 +116,14 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
+networkx==3.7
+    # via pymupdf
+numpy==2.5.4
+    # via
+    #   onnxruntime
+    #   pymupdf
+onnxruntime==1.31.0
+    # via pymupdf
 opentelemetry-api==1.44.0
     # via
     #   opentelemetry-instrumentation
@@ -134,24 +142,30 @@ opentelemetry-semantic-conventions==0.65b0
     #   opentelemetry-instrumentation
     #   opentelemetry-sdk
 packaging==26.3
-    # via opentelemetry-instrumentation
+    # via
+    #   onnxruntime
+    #   opentelemetry-instrumentation
 pillow==12.3.0
     # via
     #   python-pptx
     #   strands-agents-tools
-playwright==1.62.0
-    # via -r agentcore-runtime/requirements.in
+playwright==1.64.0
+    # via -r requirements.in
 prompt-toolkit==3.0.53
     # via strands-agents-tools
 propcache==0.5.2
     # via
     #   aiohttp
     #   yarl
+protobuf==7.36.2
+    # via onnxruntime
+psutil==7.2.2
+    # via pymupdf
 pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pycparser==3.0
     # via cffi
 pydantic==2.13.4
     # via
@@ -168,12 +182,16 @@ pyee==13.0.1
     # via playwright
 pygments==2.20.0
     # via rich
-pyjwt==2.13.0
+pyjwt[crypto]==2.13.0
     # via
     #   mcp
     #   strands-agents-tools
-pymupdf==1.28.2
-    # via -r agentcore-runtime/requirements.in
+pymupdf==2.0
+    # via -r requirements.in
+pymupdf-layout==2.0
+    # via pymupdf
+pymupdf4llm==2.0
+    # via pymupdf
 python-dateutil==2.9.0.post0
     # via botocore
 python-dotenv==1.2.2
@@ -181,11 +199,11 @@ python-dotenv==1.2.2
 python-multipart==0.0.32
     # via mcp
 python-pptx==1.0.2
-    # via -r agentcore-runtime/requirements.in
-pywin32==312 ; sys_platform == 'win32'
-    # via mcp
+    # via -r requirements.in
 pyyaml==6.0.3
-    # via strands-agents
+    # via
+    #   pymupdf
+    #   strands-agents
 referencing==0.37.0
     # via
     #   jsonschema
@@ -223,14 +241,16 @@ starlette==1.6.0
     #   bedrock-agentcore
     #   mcp
     #   sse-starlette
-strands-agents==1.52.0
+strands-agents==1.61.1
     # via
-    #   -r agentcore-runtime/requirements.in
+    #   -r requirements.in
     #   strands-agents-tools
-strands-agents-tools==0.8.6
-    # via -r agentcore-runtime/requirements.in
+strands-agents-tools==0.8.9
+    # via -r requirements.in
 sympy==1.14.0
     # via strands-agents-tools
+tabulate==0.10.0
+    # via pymupdf
 tenacity==9.1.4
     # via
     #   google-genai
@@ -261,8 +281,6 @@ typing-inspection==0.4.4
     #   mcp
     #   pydantic
     #   pydantic-settings
-tzdata==2026.3 ; sys_platform == 'win32'
-    # via strands-agents-tools
 urllib3==2.7.0
     # via
     #   bedrock-agentcore
