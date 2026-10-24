@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an improvement to the project.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Data, Slack scope, or AWS permission impact
+      description: Explain any new data flow or permission. Write "None" when there is no impact.
+    validations:
+      required: true

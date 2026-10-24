@@ -1,0 +1,272 @@
+{
+  "seed_cases": [
+    {
+      "case_id": "case-20260101000000-e0a10001",
+      "title": "〇〇物流の倉庫DX：ピッキング指示をAIで最適化",
+      "summary": "〇〇物流さま向けに、倉庫のピッキング順序をAIで最適化し、作業時間を2割短縮した事例",
+      "project_or_customer": "〇〇物流",
+      "customer_industry": "物流",
+      "approach": "出荷データから需要を予測し、作業者ごとのピッキング順序を自動で組み替えた",
+      "impact": "ピッキング作業時間を20%短縮",
+      "contact_hint": "倉庫DXチーム",
+      "status": "ready",
+      "sensitive_flags": [],
+      "keywords": ["物流", "倉庫", "ピッキング"]
+    },
+    {
+      "case_id": "case-20260101000000-e0a10002",
+      "title": "コールセンターの問い合わせ分類を生成AIで補助",
+      "summary": "問い合わせの分類と回答候補の提示を生成AIで補助し、確認時間を1件15分から3分にした事例",
+      "project_or_customer": "社内（カスタマーサポート部）",
+      "approach": "過去の問い合わせ履歴を検索して、分類と回答候補をオペレーターへ提示した",
+      "impact": "確認時間を1件15分から3分に短縮",
+      "contact_hint": "業務改善チーム",
+      "status": "ready",
+      "sensitive_flags": [],
+      "keywords": ["問い合わせ", "コールセンター", "生成AI"]
+    },
+    {
+      "case_id": "case-20260101000000-e0a10003",
+      "title": "経理の月次締め作業の自動化5本で月24時間削減",
+      "summary": "経理部が月次締めの定型作業を減らすため、Claudeで5本の自動化を構築した事例",
+      "project_or_customer": "社内（経理部）",
+      "approach": "仕訳チェック、請求書の突き合わせ、売上日報の集計など5本を自動化した",
+      "impact": "月24時間の作業を削減",
+      "status": "ready",
+      "sensitive_flags": [],
+      "keywords": ["経理", "Claude", "自動化"]
+    },
+    {
+      "case_id": "case-20260101000000-e0a10004",
+      "title": "「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化",
+      "summary": "売場日報の記録から店舗ごとの課題を集計し、複数店舗の欠品や品出しの状況を可視化した事例",
+      "project_or_customer": "社内（販売企画部）",
+      "approach": "店舗ごとの日報から欠品・品出し・接客の記述を拾い、前の週との比較で課題を整理した",
+      "status": "ready",
+      "sensitive_flags": [],
+      "keywords": ["小売", "可視化", "日報"]
+    },
+    {
+      "case_id": "case-20260101000000-e0a10005",
+      "title": "みどり書房さま 店舗の発注予測AI（Shelf Forecast）導入支援",
+      "summary": "みどり書房さま向けに、店舗の発注予測AI「Shelf Forecast」の要件整理から検証、店舗展開までを伴走支援した事例",
+      "project_or_customer": "みどり書房",
+      "customer_industry": "小売",
+      "approach": "販売実績と季節要因から書籍の発注量を予測するモデルを検証し、店舗への展開まで伴走した",
+      "impact": "導入店舗が14店舗に拡大",
+      "status": "ready",
+      "sensitive_flags": [],
+      "keywords": ["小売", "発注予測", "伴走支援"]
+    }
+  ],
+  "cases": [
+    {
+      "id": "register-plain-new",
+      "text": "工場の設備点検記録を生成AIで要約し、点検報告の作成時間を1件30分から5分に短縮しました。担当は製造DXチームの高橋さんです。事例として登録してください。",
+      "expect": ["register_case_tool", "ask_register_or_update_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "register-long-description-without-verb",
+      "text": "人事部の勤怠チェックに生成AIを入れました。打刻漏れの理由をAIが整理して、確認の差し戻しが月40件から5件に減っています。担当は人事部の伊藤さんです。",
+      "expect": ["register_case_tool", "ask_register_or_update_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "register-other-customer-project",
+      "text": "あおば運輸様向けに、配車計画の最適化（Route Planner）の検証を始めました。社内メンバーは高橋さん、伊藤さんの体制です。事例として登録してください。",
+      "expect": ["register_case_tool", "ask_register_or_update_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "register-similar-to-existing",
+      "text": "〇〇物流の倉庫DXの事例です。出荷検品の画像判定をAIで自動化し、検品ミスを半減させました。登録してください。",
+      "expect": ["ask_register_or_update_tool", "register_case_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "register-mentioning-claude-and-bot",
+      "text": "Claudeに手伝ってもらって作った「棚割りチェッカー」の事例です。Botの使い方の質問ではないので、新しい事例として登録してください。",
+      "thread": [
+        {"text": "売場の棚の写真をAIで確認して、陳列ルールとのずれを指摘する「棚割りチェッカー」を作りました。店長の巡回チェックが1店舗20分から5分になっています。"}
+      ],
+      "expect": ["register_case_tool"],
+      "forbid": ["describe_bot_tool", "update_case_tool"]
+    },
+    {
+      "id": "register-explicit-betsuken",
+      "text": "別件として登録して",
+      "thread": [
+        {"text": "倉庫の棚卸しを画像認識で自動化した事例です。登録してください。棚卸しの作業時間が半分になりました。"},
+        {"bot": true, "text": "近い事例として「〇〇物流の倉庫DX：ピッキング指示をAIで最適化」が登録されています。新しい事例として登録するか、既存の事例へ追記するか、どちらにしますか？"}
+      ],
+      "expect": ["register_case_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "register-with-stale-pending-update",
+      "text": "社内の議事録作成を生成AIで自動化した事例です。会議後の議事録共有が当日中にできるようになりました。登録してください。",
+      "state": {
+        "pending_action": "update_case",
+        "additional_content": "確認の手間が3割減った",
+        "candidate_case_ids": ["case-20260101000000-e0a10002"],
+        "candidate_titles": ["コールセンターの問い合わせ分類を生成AIで補助"],
+        "updated_at": "2026-01-01T00:00:00+00:00"
+      },
+      "expect": ["register_case_tool", "ask_register_or_update_tool"],
+      "forbid": ["update_case_tool", "confirm_pending_update_tool"]
+    },
+    {
+      "id": "append-quoted-title",
+      "text": "「コールセンターの問い合わせ分類を生成AIで補助」に追記してください。対象を2部門へ広げ、月120時間の削減になりました。",
+      "expect": ["update_case_tool"],
+      "forbid": ["register_case_tool"],
+      "expect_case_id": "case-20260101000000-e0a10002"
+    },
+    {
+      "id": "append-thread-case",
+      "text": "この事例に追記して。効果として、締め作業の差し戻しが半分になったと経理部から報告がありました。",
+      "state": {"case_id": "case-20260101000000-e0a10003"},
+      "expect": ["update_case_tool"],
+      "forbid": ["register_case_tool"],
+      "expect_case_id": "case-20260101000000-e0a10003"
+    },
+    {
+      "id": "append-double-bracket-after-question",
+      "text": "「「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化」に追記して",
+      "thread": [
+        {"text": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。この内容を追記しておいて"},
+        {"bot": true, "text": "追記したい内容は預かりました。追記先の事例を1つに決めきれなかったので、選んでもらえますか？\n1. 〇〇物流の倉庫DX：ピッキング指示をAIで最適化\n2. 「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化"}
+      ],
+      "state": {
+        "pending_action": "update_case",
+        "additional_content": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。",
+        "candidate_case_ids": ["case-20260101000000-e0a10001", "case-20260101000000-e0a10004"],
+        "candidate_titles": ["〇〇物流の倉庫DX：ピッキング指示をAIで最適化", "「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化"]
+      },
+      "expect": ["update_case_tool", "confirm_pending_update_tool"],
+      "expect_case_id": "case-20260101000000-e0a10004"
+    },
+    {
+      "id": "append-number-after-question",
+      "text": "2番でお願いします",
+      "thread": [
+        {"text": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。この内容を追記しておいて"},
+        {"bot": true, "text": "追記したい内容は預かりました。追記先の事例を1つに決めきれなかったので、選んでもらえますか？\n1. 〇〇物流の倉庫DX：ピッキング指示をAIで最適化\n2. 「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化"}
+      ],
+      "state": {
+        "pending_action": "update_case",
+        "additional_content": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。",
+        "candidate_case_ids": ["case-20260101000000-e0a10001", "case-20260101000000-e0a10004"],
+        "candidate_titles": ["〇〇物流の倉庫DX：ピッキング指示をAIで最適化", "「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化"]
+      },
+      "expect": ["update_case_tool", "confirm_pending_update_tool"],
+      "expect_case_id": "case-20260101000000-e0a10004"
+    },
+    {
+      "id": "agree-after-proposal",
+      "text": "お願い",
+      "thread": [
+        {"text": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。この内容を追記しておいて"},
+        {"bot": true, "text": "追記先は「「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化」だと思います。\n「「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化」に追記してよければ、このスレッドで「お願い」と返信してください。違う事例なら、その事例名を教えてください。"}
+      ],
+      "state": {
+        "pending_action": "update_case",
+        "additional_content": "売場日報の集計で欠品の多い時間帯を特定し、発注の締め時刻を1時間早めました。12店舗・8週分を集計しています。",
+        "candidate_case_ids": ["case-20260101000000-e0a10004"],
+        "candidate_titles": ["「店舗日報ダイジェスト」による多店舗チェーンの売場の課題の可視化"]
+      },
+      "expect": ["update_case_tool", "confirm_pending_update_tool"],
+      "expect_case_id": "case-20260101000000-e0a10004"
+    },
+    {
+      "id": "append-ambiguous-target",
+      "text": "この内容を追記しておいて。問い合わせの件数が3割減った",
+      "expect": ["ask_register_or_update_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "correction-customer",
+      "text": "この事例の顧客名、みどり書房じゃなくてみどり書房ホールディングスが正しいので修正して",
+      "state": {"case_id": "case-20260101000000-e0a10005"},
+      "expect": ["update_case_tool"],
+      "forbid": ["register_case_tool"]
+    },
+    {
+      "id": "ambiguous-related-info",
+      "text": "そういえば倉庫の件、来月から2拠点目にも展開するらしいです",
+      "expect": ["ask_register_or_update_tool", "chat_reply_tool", "search_cases_tool", "describe_case_tool", "get_case_context_tool"],
+      "forbid": ["update_case_tool", "register_case_tool"]
+    },
+    {
+      "id": "revert",
+      "text": "さっきの追記を取り消して、元に戻して",
+      "state": {"case_id": "case-20260101000000-e0a10003"},
+      "expect": ["revert_case_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "search-basic",
+      "text": "問い合わせ対応を短縮した事例はありますか？",
+      "expect": ["search_cases_tool"],
+      "forbid": ["register_case_tool", "update_case_tool"]
+    },
+    {
+      "id": "search-industry",
+      "text": "物流業界でAIを使った事例を探しています",
+      "expect": ["search_cases_tool"],
+      "forbid": ["register_case_tool", "update_case_tool"]
+    },
+    {
+      "id": "search-claude",
+      "text": "Claudeで業務を自動化した事例ってある？",
+      "expect": ["search_cases_tool"],
+      "forbid": ["describe_bot_tool", "register_case_tool"]
+    },
+    {
+      "id": "detail-followup",
+      "text": "その事例、もう少し詳しく教えて",
+      "state": {"case_id": "case-20260101000000-e0a10001", "last_search_case_ids": ["case-20260101000000-e0a10001"]},
+      "expect": ["describe_case_tool", "get_case_context_tool"],
+      "forbid": ["update_case_tool", "register_case_tool"]
+    },
+    {
+      "id": "next-action",
+      "text": "この事例を自分の案件でも使いたいんだけど、誰に聞けばいい？",
+      "state": {"case_id": "case-20260101000000-e0a10001"},
+      "expect": ["case_next_action_tool"],
+      "forbid": ["update_case_tool"]
+    },
+    {
+      "id": "bot-model",
+      "text": "このBotは何のモデルを使っていますか？",
+      "expect": ["describe_bot_tool"],
+      "forbid": []
+    },
+    {
+      "id": "help",
+      "text": "何ができるの？",
+      "expect": ["chat_reply_tool", "describe_bot_tool"],
+      "forbid": ["register_case_tool", "update_case_tool"]
+    },
+    {
+      "id": "chat-thanks",
+      "text": "ありがとう、助かりました！",
+      "state": {"case_id": "case-20260101000000-e0a10001"},
+      "expect": ["chat_reply_tool"],
+      "forbid": ["update_case_tool", "register_case_tool"]
+    },
+    {
+      "id": "out-of-scope",
+      "text": "明日の東京の天気を教えて",
+      "expect": ["unsupported_request_tool", "chat_reply_tool"],
+      "forbid": ["register_case_tool", "search_cases_tool"]
+    },
+    {
+      "id": "out-of-scope-code",
+      "text": "Pythonでクイックソートを書いて",
+      "expect": ["unsupported_request_tool", "chat_reply_tool"],
+      "forbid": ["register_case_tool"]
+    }
+  ]
+}
