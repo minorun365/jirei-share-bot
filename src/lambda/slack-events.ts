@@ -13,6 +13,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { formatJstDate, noPostReason, toJstDate, type NoPostReason } from "../domain/jp-holidays.js";
+import { isTransientErrorName, withBackoff, type BackoffOptions } from "../domain/retry.js";
 
 const ssm = new SSMClient({});
 const agentCore = new BedrockAgentCoreClient({});
@@ -649,6 +650,13 @@ function buildProcessingErrorReply(error: unknown, eventId: string | undefined):
   return withOwnerAlert(lines.join("\n"), safeError.name);
 }
 
+// 最大4回（待ちは 0〜30秒・0〜60秒・0〜120秒）。1回の呼び出しは1〜2分なので、Lambda の15分に収まる。
+// テストでは DAILY_SHARE_RETRY_BASE_MS=0 で待ちを消す
+function dailyShareBackoffOptions(): BackoffOptions {
+  const base = Number(process.env.DAILY_SHARE_RETRY_BASE_MS ?? "30000");
+  return { maxAttempts: 4, baseDelayMs: Number.isFinite(base) ? base : 30000, maxDelayMs: 120_000 };
+}
+
 async function handleDailyShare(
   event: DailyShareEvent
 ): Promise<ScheduledInvocationResult> {
@@ -663,19 +671,49 @@ async function handleDailyShare(
     return { ok: true, shared: false, skipped };
   }
 
-  let response: CaseAgentResponse;
-  try {
-    response = await invokeCaseAgent({
-      mode: "daily_share",
-      target_channel_id: channelId
-    });
-  } catch (error) {
+  // Bedrock の混雑（ServiceUnavailable など）は Runtime 側の SDK 再試行（数秒）では抜けられないことがある
+  // （定時実行が集まる正時に起きやすい）。その外側で、分単位の Exponential Backoff with Full Jitter で呼び直す。
+  // Slack への投稿は成功した応答を受けてから1回だけ行うので、呼び直しても二重投稿にならない。
+  let thrown: unknown;
+  const result = await withBackoff<CaseAgentResponse>(
+    async () => {
+      try {
+        const res = await invokeCaseAgent({ mode: "daily_share", target_channel_id: channelId });
+        thrown = undefined;
+        if (res.ok === false && isTransientErrorName(res.error)) {
+          return { kind: "retry", reason: res.error ?? "unknown", value: res };
+        }
+        return { kind: "done", value: res };
+      } catch (error) {
+        const name = toSafeError(error).name;
+        if (!isTransientErrorName(name)) {
+          throw error;
+        }
+        thrown = error;
+        return { kind: "retry", reason: name };
+      }
+    },
+    dailyShareBackoffOptions(),
+    (info) => console.warn("daily_share_retry", info)
+  ).catch(async (error: unknown) => {
     await postOwnerAlertToChannel(toSafeError(error).name, "今日の事例紹介（日次共有）の処理に失敗しました。");
     throw error;
+  });
+  if (result.attempts > 1) {
+    console.info("daily_share_attempts", { attempts: result.attempts, exhausted: result.exhaustedReason ?? null });
   }
+  if (!result.value) {
+    await postOwnerAlertToChannel(
+      result.exhaustedReason ?? "daily_share_failed",
+      `今日の事例紹介（日次共有）の処理に失敗しました（${result.attempts}回試行）。`
+    );
+    throw thrown ?? new Error("daily_share_failed");
+  }
+  const response = result.value;
   logAgentResponse("daily_share", response);
   if (response.ok === false) {
-    await postOwnerAlertToChannel(response.owner_alert ?? response.error ?? "daily_share_failed", "今日の事例紹介（日次共有）の処理に失敗しました。");
+    const tried = result.attempts > 1 ? `（${result.attempts}回試行）` : "";
+    await postOwnerAlertToChannel(response.owner_alert ?? response.error ?? "daily_share_failed", `今日の事例紹介（日次共有）の処理に失敗しました${tried}。`);
     return { ok: false, shared: false };
   }
   if (!response.post_to_channel || !response.slack_text) {

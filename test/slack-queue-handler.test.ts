@@ -200,6 +200,61 @@ describe("Slack queue handler", () => {
     }
   });
 
+  it("retries the daily share with backoff when Bedrock is congested, then posts once", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    process.env.DAILY_SHARE_RETRY_BASE_MS = "0";
+    try {
+      vi.setSystemTime(new Date("2026-09-24T03:00:00Z"));
+      mocks.agentSend
+        .mockResolvedValueOnce(agentFailure("ServiceUnavailableException"))
+        .mockResolvedValueOnce(agentFailure("ServiceUnavailableException"))
+        .mockResolvedValueOnce(dailyShareResponse());
+
+      const result = await handler({ mode: "daily_share", channelId: "C0123456789" });
+
+      expect(mocks.agentSend).toHaveBeenCalledTimes(3);
+      expect(result).toMatchObject({ ok: true, shared: true });
+      expect(slackMethods().filter((m) => m === "chat.postMessage")).toHaveLength(1);
+    } finally {
+      delete process.env.DAILY_SHARE_RETRY_BASE_MS;
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry the daily share on a non-transient failure", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    process.env.DAILY_SHARE_RETRY_BASE_MS = "0";
+    try {
+      vi.setSystemTime(new Date("2026-09-24T03:00:00Z"));
+      mocks.agentSend.mockResolvedValueOnce(agentFailure("ValidationException"));
+
+      const result = await handler({ mode: "daily_share", channelId: "C0123456789" });
+
+      expect(mocks.agentSend).toHaveBeenCalledTimes(1);
+      expect(result).toMatchObject({ ok: false, shared: false });
+    } finally {
+      delete process.env.DAILY_SHARE_RETRY_BASE_MS;
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops after 4 attempts when Bedrock stays congested", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    process.env.DAILY_SHARE_RETRY_BASE_MS = "0";
+    try {
+      vi.setSystemTime(new Date("2026-09-24T03:00:00Z"));
+      mocks.agentSend.mockResolvedValue(agentFailure("ServiceUnavailableException"));
+
+      const result = await handler({ mode: "daily_share", channelId: "C0123456789" });
+
+      expect(mocks.agentSend).toHaveBeenCalledTimes(4);
+      expect(result).toMatchObject({ ok: false, shared: false });
+    } finally {
+      delete process.env.DAILY_SHARE_RETRY_BASE_MS;
+      vi.useRealTimers();
+    }
+  });
+
   it("runs the daily share on an ordinary weekday", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
@@ -236,6 +291,23 @@ function sqsEvent(eventId: string, channel: string, receiveCount: string) {
         attributes: { ApproximateReceiveCount: receiveCount }
       }
     ]
+  };
+}
+
+function agentFailure(error: string) {
+  return {
+    response: {
+      transformToString: async () => JSON.stringify({ ok: false, action: "error", slack_text: "失敗", error })
+    }
+  };
+}
+
+function dailyShareResponse() {
+  return {
+    response: {
+      transformToString: async () =>
+        JSON.stringify({ ok: true, action: "daily_share", post_to_channel: true, slack_text: "今日の事例です" })
+    }
   };
 }
 
