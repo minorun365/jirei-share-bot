@@ -28,7 +28,7 @@ export interface CaseShareBotAgentStackProps extends StackProps {
   readonly bedrockModelId: string;
   readonly bedrockModelDisplayName: string;
   readonly slackWorkspaceUrl: string;
-  readonly tavilySearchEnabled: boolean;
+  readonly webSearchEnabled: boolean;
   readonly externalUrlFetchEnabled: boolean;
   readonly googleDriveEnabled: boolean;
   readonly graphicGenerationEnabled: boolean;
@@ -37,8 +37,6 @@ export interface CaseShareBotAgentStackProps extends StackProps {
   readonly googleImageModelId: string;
 }
 
-const TAVILY_PARAMETER_PREFIX = "/case-share-bot/tavily";
-const TAVILY_API_KEY_PARAMETER_NAME = `${TAVILY_PARAMETER_PREFIX}/api-key`;
 const GOOGLE_DRIVE_OAUTH_PARAMETER_NAME = "/case-share-bot/google/drive-oauth";
 export class CaseShareBotAgentStack extends Stack {
   public readonly agentRuntime: AgentCoreRuntime;
@@ -85,12 +83,11 @@ export class CaseShareBotAgentStack extends Stack {
         CASE_KNOWLEDGE_BASE_DATA_SOURCE_ID: props.knowledgeBaseDataSourceId,
         CASE_KNOWLEDGE_SOURCE_PREFIX,
         CASE_KNOWLEDGE_RETRIEVAL_RESULTS: "5",
-        TAVILY_API_KEY_PARAMETER_NAME,
         GOOGLE_DRIVE_OAUTH_PARAMETER_NAME,
-        TAVILY_SEARCH_ENABLED: props.tavilySearchEnabled ? "true" : "false",
+        WEB_SEARCH_ENABLED: props.webSearchEnabled ? "true" : "false",
         EXTERNAL_URL_FETCH_ENABLED: props.externalUrlFetchEnabled ? "true" : "false",
         URL_FETCH_BROWSER_ENABLED: props.externalUrlFetchEnabled ? "true" : "false",
-        TAVILY_SEARCH_MAX_RESULTS: "3",
+        WEB_SEARCH_MAX_RESULTS: "3",
         GOOGLE_DRIVE_ENABLED: props.googleDriveEnabled ? "true" : "false",
         GOOGLE_CLOUD_PROJECT: props.googleCloudProject,
         GOOGLE_CLOUD_LOCATION: props.googleCloudLocation,
@@ -123,8 +120,16 @@ export class CaseShareBotAgentStack extends Stack {
         ]
       })
     );
+    if (props.webSearchEnabled) {
+      // 公開Web検索（AgentCore Web Search）。APIキーは要らず、この権限だけで呼べる
+      agentRuntime.addToRolePolicy(
+        new PolicyStatement({
+          actions: ["bedrock-agentcore:InvokeWebSearch"],
+          resources: [`arn:${this.partition}:bedrock-agentcore:${this.region}:aws:tool/web-search.v1`]
+        })
+      );
+    }
     const optionalParameterNames = [
-      ...(props.tavilySearchEnabled ? [TAVILY_API_KEY_PARAMETER_NAME] : []),
       ...(props.googleDriveEnabled ? [GOOGLE_DRIVE_OAUTH_PARAMETER_NAME] : []),
       ...(props.graphicGenerationEnabled ? [GOOGLE_WIF_CREDENTIAL_CONFIG_PARAMETER_NAME] : [])
     ];

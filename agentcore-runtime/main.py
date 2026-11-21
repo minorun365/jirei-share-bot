@@ -53,7 +53,6 @@ KNOWLEDGE_BASE_DATA_SOURCE_ID = os.environ.get("CASE_KNOWLEDGE_BASE_DATA_SOURCE_
 CASE_KNOWLEDGE_SOURCE_PREFIX = os.environ.get("CASE_KNOWLEDGE_SOURCE_PREFIX", "knowledge-base/cases/")
 CASE_KNOWLEDGE_RETRIEVAL_RESULTS = int(os.environ.get("CASE_KNOWLEDGE_RETRIEVAL_RESULTS", "5"))
 GEMINI_API_KEY_PARAMETER_NAME = os.environ.get("GEMINI_API_KEY_PARAMETER_NAME", "/case-share-bot/gemini/api-key")
-TAVILY_API_KEY_PARAMETER_NAME = os.environ.get("TAVILY_API_KEY_PARAMETER_NAME", "/case-share-bot/tavily/api-key")
 GOOGLE_DRIVE_OAUTH_PARAMETER_NAME = os.environ.get(
     "GOOGLE_DRIVE_OAUTH_PARAMETER_NAME", "/case-share-bot/google/drive-oauth"
 )
@@ -65,8 +64,8 @@ GRAPHIC_PROMPT_VERSION = "v2"
 GRAPHIC_GENERATION_ENABLED = os.environ.get("GRAPHIC_GENERATION_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
 GRAPHIC_GENERATION_DELAY_SECONDS = int(os.environ.get("GRAPHIC_GENERATION_DELAY_SECONDS", "300"))
 GRAPHIC_MAINTENANCE_BATCH_SIZE = int(os.environ.get("GRAPHIC_MAINTENANCE_BATCH_SIZE", "1"))
-TAVILY_SEARCH_ENABLED = os.environ.get("TAVILY_SEARCH_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
-TAVILY_SEARCH_MAX_RESULTS = int(os.environ.get("TAVILY_SEARCH_MAX_RESULTS", "3"))
+WEB_SEARCH_ENABLED = os.environ.get("WEB_SEARCH_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+WEB_SEARCH_MAX_RESULTS = int(os.environ.get("WEB_SEARCH_MAX_RESULTS", "3"))
 IMAGE_ASSET_PREFIX = os.environ.get("IMAGE_ASSET_PREFIX", "images").strip("/") or "images"
 GRAPHIC_PENDING_NOTICE = "追加情報があればこのスレッドで教えてください。最終更新から5分後にグラレコ画像の生成が開始されます。"
 
@@ -108,10 +107,8 @@ CONVERSE_DOCUMENT_MAX_BYTES = 4_500_000
 CONVERSE_DOCUMENT_FORMATS = {"pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md"}
 IMAGE_ATTACHMENT_FORMATS = {"png", "jpeg", "gif", "webp"}
 URL_FETCH_TIMEOUT_SECONDS = 12
-TAVILY_SEARCH_TIMEOUT_SECONDS = 12
-TAVILY_SEARCH_ENDPOINT = "https://api.tavily.com/search"
-TAVILY_EXTRACT_ENDPOINT = "https://api.tavily.com/extract"
-TAVILY_EXTRACT_TIMEOUT_SECONDS = 25
+# 公開Web検索は AgentCore Web Search（InvokeWebSearch）。APIキー不要で、Runtimeロールの IAM 権限だけで呼べる
+WEB_SEARCH_TOOL_ID = "web-search.v1"
 EXTERNAL_URL_FETCH_ENABLED = os.environ.get("EXTERNAL_URL_FETCH_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
 URL_FETCH_BROWSER_ENABLED = os.environ.get("URL_FETCH_BROWSER_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
 BROWSER_FETCH_TIMEOUT_SECONDS = int(os.environ.get("BROWSER_FETCH_TIMEOUT_SECONDS", "150"))
@@ -121,9 +118,8 @@ MAX_SLIDE_SCREENSHOTS = 8
 SLIDE_HOSTS = {"speakerdeck.com", "www.slideshare.net", "slideshare.net", "www.docswell.com", "docswell.com"}
 HELPER_TOOL_NAMES = {
     "http_request",
-    "tavily_extract",
     "agentcore_browser",
-    "tavily_search_tool",
+    "web_search_tool",
     "retrieve_cases_tool",
     "get_case_context_tool",
 }
@@ -338,6 +334,8 @@ bedrock_retry_config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
 bedrock_agent_runtime = boto3.client("bedrock-agent-runtime", region_name=BEDROCK_REGION, config=bedrock_retry_config)
 bedrock_agent = boto3.client("bedrock-agent", region_name=BEDROCK_REGION, config=bedrock_retry_config)
 bedrock_runtime = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION, config=bedrock_retry_config)
+# IAM の権限はスタックのリージョンの web-search.v1 に付くので、Runtime 自身のリージョンで呼ぶ
+web_search_client = boto3.client("bedrock-agentcore", region_name=os.environ.get("AWS_REGION", BEDROCK_REGION))
 
 cases_table = dynamodb.Table(CASES_TABLE_NAME)
 case_revisions_table = dynamodb.Table(CASE_REVISIONS_TABLE_NAME) if CASE_REVISIONS_TABLE_NAME else None
@@ -362,8 +360,8 @@ Slackの自然文を読み、必要なら補助ツールで公開情報を確認
 - 組織が外部共有を認めていない高機密情報、顧客個人情報、従業員センシティブ情報、特定者限定ログやDB情報は扱いません。
 
 ツール選択:
-- 会社名、製品名、公開登壇資料名、具体的な技術キーワードから公開Web情報を補うと登録・更新の質が上がる場合だけ、最終業務ツールの前に tavily_search_tool を呼び出してよいです。
-- tavily_search_tool は公開Web検索専用です。社内情報、顧客機微情報、個人情報、Slack本文の秘密情報を検索クエリに入れないでください。
+- 会社名、製品名、公開登壇資料名、具体的な技術キーワードから公開Web情報を補うと登録・更新の質が上がる場合だけ、最終業務ツールの前に web_search_tool を呼び出してよいです。
+- web_search_tool は公開Web検索専用です。社内情報、顧客機微情報、個人情報、Slack本文の秘密情報を検索クエリに入れないでください。
 - 探して、教えて、検索、ありますか、事例ある、または短い質問では、まず retrieve_cases_tool でKnowledge Baseを検索し、その結果を踏まえて最後に search_cases_tool を呼び出してください。
 - mode が daily_share の場合は pick_daily_share_tool。
 - mode が graphic_maintenance の場合はツールを呼びません。ランタイム側が保留中の画像生成を処理します。
@@ -397,8 +395,8 @@ Slackの自然文を読み、必要なら補助ツールで公開情報を確認
 - 更新時の summary には「〜が正しい」「〜を修正します」「〜を追記」のような修正依頼の言い換えを渡さないでください。既存の紹介文に修正・追記を反映した完成形の紹介文だけを渡し、既存の紹介文が分からなければ summary は空にしてください（ランタイム側で既存紹介文に反映します）。
 - 法人顧客名、案件名、部署、社内担当者名、技術、課題、取り組み、効果を読み取り、社内共有用の自然な事例カードに整理してください。
 - summary は「何をした事例か」が伝わる1〜2つの完結文にし、全体をおおむね120文字以内に収めてください。文の途中で切らず、末尾に「…」を付けた省略文も作らないでください。
-- Tavily検索結果は、顧客の公開事業領域、製品カテゴリ、公開されている技術背景など、確実な範囲の補足にだけ使ってください。検索結果の本文を長くコピーせず、業界・用途・タグ・概要をうっすら補う程度に要約してください。
-- Tavily検索を使った場合は、参照した公開URLを register_case_tool / update_case_tool の external_source_urls に渡して内部 traceability には残してよいですが、Slack表示文には参考URLを書かないでください。
+- Web検索の結果は、顧客の公開事業領域、製品カテゴリ、公開されている技術背景など、確実な範囲の補足にだけ使ってください。検索結果の本文を長くコピーせず、業界・用途・タグ・概要をうっすら補う程度に要約してください。
+- Web検索を使った場合は、参照した公開URLを register_case_tool / update_case_tool の external_source_urls に渡して内部 traceability には残してよいですが、Slack表示文には参考URLを書かないでください。
 - 分からない項目は推測しすぎず空欄にし、必要な追加質問を最大2つに絞ってください。
 - 業界や用途が推定できる場合は customer_industry や tags に入れてください。例: 電力会社、電力計 -> エネルギー / 電力。
 
@@ -417,7 +415,7 @@ def create_agent() -> Agent:
         model=model,
         system_prompt=SYSTEM_PROMPT,
         tools=[
-            tavily_search_tool,
+            web_search_tool,
             retrieve_cases_tool,
             register_case_tool,
             update_case_tool,
@@ -442,7 +440,6 @@ _agent: Agent | None = None
 _gemini_client: genai.Client | None = None
 _gemini_api_key: str | None = None
 _google_credentials_path: str | None = None
-_tavily_api_key: str | None = None
 
 
 def get_agent() -> Agent:
@@ -453,8 +450,8 @@ def get_agent() -> Agent:
 
 
 @tool
-def tavily_search_tool(query: str, purpose: str = "", max_results: int = 3) -> str:
-    """登録・更新の補足に使う公開Web検索をTavilyで実行します。
+def web_search_tool(query: str, purpose: str = "", max_results: int = 3) -> str:
+    """登録・更新の補足に使う公開Web検索を AgentCore Web Search で実行します。
 
     Args:
         query: 公開Webで検索する法人名、製品名、公開技術キーワード。秘密情報や個人情報は含めません。
@@ -464,9 +461,9 @@ def tavily_search_tool(query: str, purpose: str = "", max_results: int = 3) -> s
     Returns:
         検索結果のJSON文字列。登録・更新ツールに渡すための公開情報スニペットとURLを含みます。
     """
-    record_tool_call("tavily_search_tool")
-    if not TAVILY_SEARCH_ENABLED:
-        return json.dumps({"ok": False, "error": "tavily_search_disabled", "results": []}, ensure_ascii=False)
+    record_tool_call("web_search_tool")
+    if not WEB_SEARCH_ENABLED:
+        return json.dumps({"ok": False, "error": "web_search_disabled", "results": []}, ensure_ascii=False)
 
     redaction = sanitize_slack_text(" ".join(part for part in [query, purpose] if part))
     if redaction["status"] == "blocked":
@@ -476,51 +473,22 @@ def tavily_search_tool(query: str, purpose: str = "", max_results: int = 3) -> s
     if not search_query or len(search_query) < 2:
         return json.dumps({"ok": False, "error": "empty_query", "results": []}, ensure_ascii=False)
 
-    result_limit = clamp_int(max_results, default=3, minimum=1, maximum=min(TAVILY_SEARCH_MAX_RESULTS, 3))
-    request_body = {
-        "query": search_query,
-        "search_depth": "basic",
-        "topic": "general",
-        "max_results": result_limit,
-        "include_answer": False,
-        "include_raw_content": False,
-        "include_images": False,
-        "include_favicon": False,
-        "country": "japan",
-    }
+    result_limit = clamp_int(max_results, default=3, minimum=1, maximum=min(WEB_SEARCH_MAX_RESULTS, 3))
     try:
-        api_key = get_tavily_api_key()
+        response = web_search_client.invoke_web_search(
+            webSearchId=WEB_SEARCH_TOOL_ID,
+            searchQuery=search_query,
+            maxResults=result_limit,
+        )
     except Exception as exc:
-        log_event("tavily_api_key_unavailable", error_type=type(exc).__name__)
-        return json.dumps({"ok": False, "error": "tavily_api_key_unavailable", "results": []}, ensure_ascii=False)
+        log_event("web_search_failed", error_type=type(exc).__name__)
+        return json.dumps({"ok": False, "error": "web_search_request_failed", "results": []}, ensure_ascii=False)
 
-    request = urlrequest.Request(
-        TAVILY_SEARCH_ENDPOINT,
-        data=json.dumps(request_body).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Jirei-Share-Bot/0.1",
-        },
-        method="POST",
-    )
-
-    try:
-        with urlrequest.urlopen(request, timeout=TAVILY_SEARCH_TIMEOUT_SECONDS) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urlerror.HTTPError as exc:
-        log_event("tavily_search_http_error", status_code=exc.code)
-        return json.dumps({"ok": False, "error": "tavily_http_error", "status_code": exc.code, "results": []}, ensure_ascii=False)
-    except Exception as exc:
-        log_event("tavily_search_failed", error_type=type(exc).__name__)
-        return json.dumps({"ok": False, "error": "tavily_request_failed", "results": []}, ensure_ascii=False)
-
-    results = normalize_tavily_results(payload)
+    results = normalize_web_search_results(response)
     source_urls = [result["url"] for result in results if result.get("url")]
     if source_urls:
         _web_source_urls.set(merge_external_source_urls(_web_source_urls.get(), source_urls))
-    log_event("tavily_search_completed", result_count=len(results))
+    log_event("web_search_completed", result_count=len(results))
     return json.dumps(
         {
             "ok": True,
@@ -585,7 +553,7 @@ def register_case_tool(
         technologies: 利用技術やキーワード。
         tags: 検索しやすくするためのタグ。業界、用途、技術、顧客名の別名を含めます。
         follow_up_questions: 追加で聞くと事例が良くなる質問。最大2つ。
-        external_source_urls: Tavily検索やURL取得で参照した公開情報のURL。最大10件まで保存します。
+        external_source_urls: Web検索やURL取得で参照した公開情報のURL。最大10件まで保存します。
         allow_duplicate: 既存事例と似ていても新規登録する場合だけ true。ユーザーが「別件です」と明言した時に限り使います。
 
     Returns:
@@ -802,7 +770,7 @@ def update_case_tool(
         impact: 効果、反応、短縮時間、品質向上など。
         technologies: 利用技術やキーワード。
         tags: 検索しやすくするためのタグ。
-        external_source_urls: Tavily検索やURL取得で参照した公開情報のURL。最大10件まで保存します。
+        external_source_urls: Web検索やURL取得で参照した公開情報のURL。最大10件まで保存します。
 
     Returns:
         Slack返信用のJSON文字列。更新された概要、または追記先を確かめる聞き返しを含みます。
@@ -2493,7 +2461,7 @@ def build_prompt(payload: dict[str, Any], context: Any = None) -> str:
             "URLの資料に互いに独立した事例が複数含まれる場合は、事例ごとに register_case_tool（または重複時は update_case_tool）を複数回呼び出して構いません。ただしツールは1回の応答につき必ず1つだけ呼び出し、結果を確認してから次の事例のツールを呼んでください（複数のツール呼び出しを1つの応答にまとめると途中で切れます）。2件以上を処理した場合だけ、最後に chat_reply_tool で登録・更新した事例タイトルの一覧、件数、確認が必要な事例を1つの返信にまとめて報告してください。登録・更新が1件だけなら chat_reply_tool は呼ばず、そのツールの結果をそのまま最終応答にしてください。",
             "新規登録の前に、事例のタイトル・顧客名・案件名をクエリにして retrieve_cases_tool で既存事例との重複を確認してください。重なる既存事例が見つかったときは、新規登録か追記かを自分で決めずに ask_register_or_update_tool で利用者に聞き返してください（既存事例の一部・関連する取り組み・別の切り口に見える場合も同じです）。message には、新しい取り組みのどこが既存事例のどれと重なって見えるかを1〜2文で書いてください。ただし利用者が「別件」「新規で」「別の事例として」と明言していれば、聞き返さずに register_case_tool を allow_duplicate=true で呼んでください。利用者が「登録して」と依頼しているのに update_case_tool を選んではいけません。「追記して」「更新して」と明示された場合だけ update_case_tool を使います。register_case_tool は登録直前にも重複チェックを行い、疑いがあると action=duplicate_suspected と候補一覧を返して登録を保留します。その結果は候補を番号付きで示す聞き返しになっているので、そのまま最終応答にしてください。ユーザーが『別件です』と明言した時だけ allow_duplicate=true で再登録してください。",
             "更新は既存事例の内容を置き換える操作です。対象を取り違えるとその事例の情報が失われるため、どの事例を更新するか確信が持てないときは、勝手に決めずに必ず利用者へ確認してください。追記先は会話から読み取って case_id で渡してください。利用者が事例名・番号・「さっきの」などで指していれば、それを候補や検索結果と照らして選びます。読み取れないときに当て推量で選ばず、case_id を空にして聞き返しに回してください。update_case_tool が action=update_pending を返したら、同じターンで別の case_id を試して呼び直さず、その結果をそのまま返してください。返ってきた action=update の case_id とタイトルが自分の意図した対象と違う場合も、成功として扱わず利用者へ報告してください。",
-            "会社名や具体キーワードから公開Web情報を補うとよい場合だけ、業務ツールの前に tavily_search_tool を使ってください。",
+            "会社名や具体キーワードから公開Web情報を補うとよい場合だけ、業務ツールの前に web_search_tool を使ってください。",
             "検索系の質問では、search_cases_tool の前に retrieve_cases_tool を使ってKnowledge Baseから候補case_idを取得してください。",
             "thread_state.pending_action が update_case で intent が append の場合は、本文が短くても検索ではなく confirm_pending_update_tool を呼び出してください。利用者が選んだ事例を thread_state.candidates（番号・タイトル）や thread_messages と照らし、case_id に入れて渡します。利用者が候補に無い事例名を挙げたときは、先に retrieve_cases_tool をその事例名で呼んで case_id を確かめてから渡してください。intent が register なら確認待ちは無視して register_case_tool を呼んでください。",
             "thread_state.case_id があるスレッドで追記・更新依頼が来た場合は、その事例が既定の追記先です（case_id は空でも構いません）。利用者が別の事例を指しているなら、その事例の case_id を渡してください。",
@@ -2504,7 +2472,7 @@ def build_prompt(payload: dict[str, Any], context: Any = None) -> str:
             "直前の検索に対する「もっと汎用的なもの」「ほかの事例」「別の案件」は詳細質問ではなく検索条件の変更です。retrieve_cases_tool の後に search_cases_tool を呼び出してください。",
             "直前の事例の詳細URL・詳細リンクを聞かれた場合も describe_case_tool を呼び、question にはその質問を省略せず渡してください。この場合は get_case_context_tool を省略して構いません。実在するリンクを推測しないでください。",
             "thread_messages は同じSlackスレッドでBotがメンションされた時だけ渡される補助文脈です。必要な場合だけ参照してください。",
-            "fetched_url_sources はSlack本文内URLを多段フォールバック（Tavily Extract -> http_request -> AgentCore Browser）で取得した結果です。method にどの手段で読めたか、attempts に各手段の成否、warnings に会員限定・ログイン必須・本文が薄い等の注意が入ります。ok=true の content_excerpt は、ブログ・登壇資料・公開ページの内容として登録/更新/検索の判断に反映してください。",
+            "fetched_url_sources はSlack本文内URLを多段フォールバック（http_request -> AgentCore Browser）で取得した結果です。method にどの手段で読めたか、attempts に各手段の成否、warnings に会員限定・ログイン必須・本文が薄い等の注意が入ります。ok=true の content_excerpt は、ブログ・登壇資料・公開ページの内容として登録/更新/検索の判断に反映してください。",
             "URL付きの登録・更新依頼では、ユーザーの「このURLで更新して」などの命令文ではなく、ok=true の content_excerpt から読み取った内容を主材料にしてください。",
             "Google Drive / Docs / Slides / Sheets のURLは社内OAuth権限（google_drive_api）で読み取ります。Botへのメンション内でURLを渡すこと、またはメンション時に同一スレッドのURL資料を参照するよう依頼することを、その資料を社内事例へ利用する明示的な依頼として扱い、Driveの共有範囲をBot側で再審査しません。drive_file_not_accessible の場合だけ、BotのOAuthでは資料を開けないことをカジュアルに伝えてください。同じURLの再送や時間待ちは案内しないでください。",
             "Slackへのファイル直接添付は取り込み対象外です。資料を読ませたい依頼があれば、BotのOAuthからアクセスできるGoogle Driveへ置き、そのURLを送ってもらうよう案内してください。",
@@ -2514,8 +2482,8 @@ def build_prompt(payload: dict[str, Any], context: Any = None) -> str:
             "このBot自身のモデル、プロンプト上の工夫、グラレコ生成、設計、検索方式、情報保護、定期処理についての質問には describe_bot_tool を呼び出してください。社内事例の中で使われたモデルや技術を尋ねる質問は、事例検索・詳細確認として扱ってください。",
             "unsupported_request_tool は、天気・翻訳・コード作成など事例共有と明確に無関係な依頼だけに使ってください。事例が紐づくスレッドの曖昧な追質問を対象外扱いして、機能一覧を返してはいけません。",
             "取得本文の生コピーを長く保存せず、社内事例として必要な課題・取り組み・効果・技術・タグに要約してツールへ渡してください。",
-            "tavily_search_tool の結果は公開情報の補足です。顧客の業界・製品カテゴリ・公開技術背景など、確実な範囲だけを業界・用途・タグ・概要にうっすら反映し、社内情報や秘密情報の推測には使わないでください。",
-            "tavily_search_tool を使った場合、参照した公開URLを register_case_tool / update_case_tool の external_source_urls に渡して内部 traceability には残してよいですが、Slack表示文には参考URLを書かないでください。",
+            "web_search_tool の結果は公開情報の補足です。顧客の業界・製品カテゴリ・公開技術背景など、確実な範囲だけを業界・用途・タグ・概要にうっすら反映し、社内情報や秘密情報の推測には使わないでください。",
+            "web_search_tool を使った場合、参照した公開URLを register_case_tool / update_case_tool の external_source_urls に渡して内部 traceability には残してよいですが、Slack表示文には参考URLを書かないでください。",
             "登録時は register_case_tool に title / summary / project_or_customer / customer_industry / department / contact_hint / problem / approach / impact / technologies / tags を可能な範囲で渡してください。",
             "summary は何をした事例かが伝わる1〜2つの完結文にし、全体をおおむね120文字以内に収めてください。文の途中で切ったり、末尾を「…」で省略したりしないでください。",
             "曖昧な場合は、保存せずに search_cases_tool を使って既存事例を探してください。",
@@ -2835,7 +2803,7 @@ def try_google_drive_fetch(request_url: str) -> dict[str, Any]:
 def fetch_url_source(raw_url: str, max_chars: int) -> dict[str, Any]:
     """URLの本文を多段フォールバックで取得する。
 
-    取得順: Tavily Extract -> Strands http_request -> AgentCore Browser。
+    取得順: Strands http_request -> AgentCore Browser。
     スライド共有サイト（Speaker Deck等）はテキスト抽出が薄いため、最初から
     AgentCore Browser でレンダリングし、必要ならスクリーンショットを
     Bedrockのマルチモーダル読み取りにかける。
@@ -2915,7 +2883,7 @@ def fetch_url_source(raw_url: str, max_chars: int) -> dict[str, Any]:
         return result
 
     # Google Drive 系URLは、任意機能が有効な場合だけ OAuth（drive.readonly）で取得する。
-    # ログイン壁があるため後段の Tavily / http / Browser は意味がなく、短絡する
+    # ログイン壁があるため後段の http / Browser は意味がなく、短絡する
     if host in GOOGLE_DRIVE_HOSTS:
         if not GOOGLE_DRIVE_ENABLED:
             return {
@@ -2941,7 +2909,7 @@ def fetch_url_source(raw_url: str, max_chars: int) -> dict[str, Any]:
         }
 
     # URLが直接PDFを指す場合は、Slack添付ファイルと同じ document ブロック経路で読む。
-    # Tavily / http_request はPDFバイナリを扱えず、画像だけのPDF（スキャン等）は
+    # http_request はPDFバイナリを扱えず、画像だけのPDF（スキャン等）は
     # テキスト抽出も効かないため、先にマルチモーダル読み取りへ乗せる
     if url_points_to_pdf(request_url):
         chosen = register_attempt("pdf_document", try_pdf_document_fetch(request_url))
@@ -2949,9 +2917,6 @@ def fetch_url_source(raw_url: str, max_chars: int) -> dict[str, Any]:
             return finalize(chosen)
 
     # 軽い順に試す。Speaker Deck等もHTML内の書き起こしテキストが前段で取れることが多い
-    chosen = register_attempt("tavily_extract", try_tavily_extract(request_url))
-    if chosen:
-        return finalize(chosen)
     chosen = register_attempt("http_request", try_http_request_fetch(request_url))
     if chosen:
         return finalize(chosen)
@@ -2980,7 +2945,7 @@ def fetch_url_source(raw_url: str, max_chars: int) -> dict[str, Any]:
 def strip_markdown_noise(text: str) -> str:
     """取得したMarkdown/テキストからナビゲーション由来のノイズを削る。
 
-    Tavily Extract や http_request の markdown 変換結果は、画像・リンクの
+    http_request の markdown 変換結果は、画像・リンクの
     URL がナビゲーション部分に大量に入り、文字数制限内から本文を
     押し出してしまうため、リンクはテキストだけ残して圧縮する。
     """
@@ -3043,44 +3008,6 @@ def try_pdf_document_fetch(request_url: str) -> dict[str, Any]:
     if not text:
         return {"ok": False, "status_code": status_code, "error": "pdf_extraction_empty"}
     return {"ok": True, "status_code": status_code, "text": text}
-
-
-def try_tavily_extract(request_url: str) -> dict[str, Any]:
-    if not TAVILY_SEARCH_ENABLED:
-        return {"ok": False, "error": "tavily_disabled"}
-    try:
-        api_key = get_tavily_api_key()
-    except Exception as exc:
-        log_event("tavily_extract_api_key_unavailable", error_type=type(exc).__name__)
-        return {"ok": False, "error": "tavily_api_key_unavailable"}
-
-    record_tool_call("tavily_extract")
-    request = urlrequest.Request(
-        TAVILY_EXTRACT_ENDPOINT,
-        data=json.dumps({"urls": [request_url], "extract_depth": "advanced", "include_images": False}).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Jirei-Share-Bot/0.1",
-        },
-        method="POST",
-    )
-    try:
-        with urlrequest.urlopen(request, timeout=TAVILY_EXTRACT_TIMEOUT_SECONDS) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urlerror.HTTPError as exc:
-        return {"ok": False, "error": "tavily_extract_http_error", "status_code": exc.code}
-    except Exception as exc:
-        log_event("tavily_extract_failed", error_type=type(exc).__name__)
-        return {"ok": False, "error": "tavily_extract_request_failed"}
-
-    results = payload.get("results") if isinstance(payload, dict) else None
-    if isinstance(results, list) and results:
-        raw_content = str(results[0].get("raw_content") or "")
-        if raw_content:
-            return {"ok": True, "text": raw_content}
-    return {"ok": False, "error": "tavily_extract_empty_result"}
 
 
 def try_http_request_fetch(request_url: str) -> dict[str, Any]:
@@ -3260,7 +3187,8 @@ def parse_strands_http_result(result: Any) -> dict[str, Any]:
     }
 
 
-def normalize_tavily_results(payload: Any) -> list[dict[str, Any]]:
+def normalize_web_search_results(payload: Any) -> list[dict[str, Any]]:
+    """InvokeWebSearch の results（title / url / text / publishedAt）を登録用の形へそろえる。"""
     if not isinstance(payload, dict):
         return []
 
@@ -3270,21 +3198,22 @@ def normalize_tavily_results(payload: Any) -> list[dict[str, Any]]:
             continue
         url = normalize_external_source_url(str(raw_result.get("url") or ""))
         title = cleanup_generated_text(str(raw_result.get("title") or ""))
-        content = str(raw_result.get("content") or "")
+        content = str(raw_result.get("text") or "")
         sanitized = sanitize_fetched_source_text(content)
         if not url or not sanitized["text"]:
             continue
+        published = raw_result.get("publishedAt")
         normalized.append(
             {
                 "title": truncate(title, 120),
                 "url": url,
                 "content_excerpt": truncate(sanitized["text"], 900),
-                "score": raw_result.get("score"),
+                "published_at": published.isoformat() if hasattr(published, "isoformat") else (str(published) if published else None),
                 "redaction_status": sanitized["status"],
                 "sensitive_flags": sanitized["flags"],
             }
         )
-    return normalized[: min(TAVILY_SEARCH_MAX_RESULTS, 3)]
+    return normalized[: min(WEB_SEARCH_MAX_RESULTS, 3)]
 
 
 def extract_urls(text: str) -> list[str]:
@@ -3365,7 +3294,6 @@ def has_readable_fetched_url_sources() -> bool:
 
 
 URL_FETCH_METHOD_LABELS = {
-    "tavily_extract": "Tavilyの本文抽出",
     "http_request": "HTTPリクエスト",
     "agentcore_browser": "ブラウザでのレンダリング",
 }
@@ -5989,18 +5917,6 @@ def get_gemini_api_key() -> str:
     if not value:
         raise RuntimeError("gemini_api_key_parameter_is_empty")
     _gemini_api_key = value
-    return value
-
-
-def get_tavily_api_key() -> str:
-    global _tavily_api_key
-    if _tavily_api_key:
-        return _tavily_api_key
-    response = ssm.get_parameter(Name=TAVILY_API_KEY_PARAMETER_NAME, WithDecryption=True)
-    value = response.get("Parameter", {}).get("Value", "")
-    if not value:
-        raise RuntimeError("tavily_api_key_parameter_is_empty")
-    _tavily_api_key = value
     return value
 
 

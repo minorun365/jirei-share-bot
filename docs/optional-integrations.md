@@ -4,17 +4,11 @@
 
 ## 公開Web検索
 
-`cdk.json` の `tavilySearchEnabled` を `true` にし、APIキーをParameter Storeへ保存します。
+`cdk.json` の `webSearchEnabled` を `true` にします。AgentCore Web Searchを使うため、APIキーの用意とParameter Storeへの保存は不要です。
 
-```sh
-aws ssm put-parameter \
-  --name /case-share-bot/tavily/api-key \
-  --type SecureString \
-  --value '<TAVILY_API_KEY>' \
-  --overwrite
-```
+有効にすると、Runtimeロールに `bedrock-agentcore:InvokeWebSearch`（`web-search.v1` ツール）の権限が追加されます。検索1回あたりの料金はAWSの利用料に含まれます。
 
-検索クエリが外部サービスへ送信されます。社内限定の名称や個人情報を検索語へ入れない運用が必要です。
+検索クエリはAWSの検索サービスへ送信されます。社内限定の名称や個人情報を検索語へ入れない運用が必要です。
 
 ## Slackメッセージ内のURL読み取り
 

@@ -35,7 +35,7 @@ for key, value in {
     "CASE_ASSETS_BUCKET_NAME": "eval-case-assets",
     "CASE_KNOWLEDGE_BASE_ID": "EVAL",
     "GRAPHIC_GENERATION_ENABLED": "false",
-    "TAVILY_SEARCH_ENABLED": "false",
+    "WEB_SEARCH_ENABLED": "false",
     "EXTERNAL_URL_FETCH_ENABLED": "false",
     "GOOGLE_DRIVE_ENABLED": "false",
 }.items():

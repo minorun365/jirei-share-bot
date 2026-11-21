@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Public web search now uses AgentCore Web Search (`webSearchEnabled`, IAM only, no API key) instead of Tavily; URL fetching falls back from `http_request` to AgentCore Browser
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

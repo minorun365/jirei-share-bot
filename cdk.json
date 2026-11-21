@@ -12,7 +12,7 @@
     "dailyShareSchedule": "cron(0 12 ? * MON-FRI *)",
     "dailyShareTimezone": "Asia/Tokyo",
     "schedulesEnabled": "true",
-    "tavilySearchEnabled": "false",
+    "webSearchEnabled": "false",
     "externalUrlFetchEnabled": "false",
     "googleDriveEnabled": "false",
     "graphicGenerationEnabled": "false",

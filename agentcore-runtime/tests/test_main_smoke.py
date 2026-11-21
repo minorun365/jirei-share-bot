@@ -1081,8 +1081,7 @@ def test_html_with_auth_terms_is_still_detected_as_login_wall(monkeypatch):
     """一般Webページでは従来どおり認証画面を検出する。"""
     monkeypatch.setattr(main, "validate_fetch_url", lambda url: (True, "ok"))
     login_page = "メールアドレスとパスワードを入力してログインしてください。" * 30
-    monkeypatch.setattr(main, "try_tavily_extract", lambda url: {"ok": True, "text": login_page})
-    monkeypatch.setattr(main, "try_http_request_fetch", lambda url: {"ok": False, "error": "empty_body"})
+    monkeypatch.setattr(main, "try_http_request_fetch", lambda url: {"ok": True, "text": login_page})
     monkeypatch.setattr(main, "URL_FETCH_BROWSER_ENABLED", False)
 
     result = main.fetch_url_source("https://example.com/login", 4000)
@@ -1179,10 +1178,10 @@ def test_fetch_url_source_prefers_pdf_branch(monkeypatch):
         lambda url: {"ok": True, "status_code": 200, "text": "スキャンPDFの本文" * 100},
     )
 
-    def fail_tavily(url):
-        raise AssertionError("PDF分岐で解決すべきなのにTavilyが呼ばれた")
+    def fail_http(url):
+        raise AssertionError("PDF分岐で解決すべきなのにhttp_requestが呼ばれた")
 
-    monkeypatch.setattr(main, "try_tavily_extract", fail_tavily)
+    monkeypatch.setattr(main, "try_http_request_fetch", fail_http)
     result = main.fetch_url_source("https://example.com/docs/case.pdf", 4000)
     assert result["ok"] is True
     assert result["method"] == "pdf_document"
@@ -1193,10 +1192,10 @@ def test_fetch_url_source_pdf_failure_falls_back(monkeypatch):
     monkeypatch.setattr(
         main, "try_pdf_document_fetch", lambda url: {"ok": False, "error": "pdf_download_failed"}
     )
-    monkeypatch.setattr(main, "try_tavily_extract", lambda url: {"ok": True, "text": "HTML経由の本文" * 100})
+    monkeypatch.setattr(main, "try_http_request_fetch", lambda url: {"ok": True, "text": "HTML経由の本文" * 100})
     result = main.fetch_url_source("https://example.com/docs/case.pdf", 4000)
     assert result["ok"] is True
-    assert result["method"] == "tavily_extract"
+    assert result["method"] == "http_request"
     assert result["attempts"][0]["method"] == "pdf_document"
 
 
@@ -2401,3 +2400,44 @@ def test_eval_intent_cases_are_well_formed():
         referenced = [state.get("case_id"), *state.get("candidate_case_ids", []), *state.get("last_search_case_ids", []), case.get("expect_case_id"), case.get("expect_proposed_case_id")]
         assert all(case_id in seed_ids for case_id in referenced if case_id), case["id"]
 
+
+def test_web_search_tool_calls_agentcore_web_search(monkeypatch):
+    """公開Web検索は AgentCore Web Search（InvokeWebSearch）を呼び、結果を登録用の形へそろえる。"""
+    from datetime import datetime, timezone
+
+    calls = []
+
+    class FakeWebSearchClient:
+        def invoke_web_search(self, **kwargs):
+            calls.append(kwargs)
+            return {
+                "results": [
+                    {
+                        "title": "あおば運輸 会社概要",
+                        "url": "https://example.com/about",
+                        "text": "あおば運輸は地域向けの配送サービスを提供しています。" * 3,
+                        "publishedAt": datetime(2026, 11, 1, tzinfo=timezone.utc),
+                    },
+                    {"title": "本文なし", "url": "https://example.com/empty", "text": ""},
+                ]
+            }
+
+    monkeypatch.setattr(main, "web_search_client", FakeWebSearchClient())
+    monkeypatch.setattr(main, "WEB_SEARCH_ENABLED", True)
+    payload = json.loads(main.web_search_tool("あおば運輸 配送", "業界確認", 5))
+
+    assert calls == [{"webSearchId": "web-search.v1", "searchQuery": "あおば運輸 配送", "maxResults": 3}]
+    assert payload["ok"] is True
+    assert [r["url"] for r in payload["results"]] == ["https://example.com/about"]
+    assert payload["results"][0]["published_at"].startswith("2026-11-01")
+
+
+def test_web_search_tool_reports_failure_without_raising(monkeypatch):
+    class FailingClient:
+        def invoke_web_search(self, **kwargs):
+            raise RuntimeError("AccessDenied")
+
+    monkeypatch.setattr(main, "web_search_client", FailingClient())
+    monkeypatch.setattr(main, "WEB_SEARCH_ENABLED", True)
+    payload = json.loads(main.web_search_tool("あおば運輸", "", 3))
+    assert payload == {"ok": False, "error": "web_search_request_failed", "results": []}

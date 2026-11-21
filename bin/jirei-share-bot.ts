@@ -48,7 +48,7 @@ const agent = new CaseShareBotAgentStack(app, "CaseShareBotAgentStack", {
   bedrockModelDisplayName:
     (app.node.tryGetContext("bedrockModelDisplayName") as string | undefined) ?? "Amazon Bedrock model",
   slackWorkspaceUrl: (app.node.tryGetContext("slackWorkspaceUrl") as string | undefined) ?? "",
-  tavilySearchEnabled: app.node.tryGetContext("tavilySearchEnabled") === "true",
+  webSearchEnabled: app.node.tryGetContext("webSearchEnabled") === "true",
   externalUrlFetchEnabled: app.node.tryGetContext("externalUrlFetchEnabled") === "true",
   googleDriveEnabled: app.node.tryGetContext("googleDriveEnabled") === "true",
   graphicGenerationEnabled: app.node.tryGetContext("graphicGenerationEnabled") === "true",
