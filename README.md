@@ -2,7 +2,7 @@
 
 事例共有くん（Jirei Share Bot）は、Slackの会話から社内の取り組み事例を登録し、検索と定期共有まで行うセルフホスト型のBotです。
 
-利用者はBotをメンションして、普段の言葉で事例を登録・更新・検索できます。事例はAmazon DynamoDBに保存し、Amazon Bedrock Knowledge Basesで意味検索します。平日の昼など、指定した時刻に登録済みの事例をSlackへ再共有できます。
+Botをメンションすれば、普段の言葉で事例を登録・更新・検索できます。事例はAmazon DynamoDBに保存し、Amazon Bedrock Knowledge Basesで意味検索します。平日の昼など、指定した時刻に登録済みの事例をSlackへ再共有できます。
 
 > [!WARNING]
 > このリポジトリは初期公開版です。本番利用の前に、組織の情報区分、Slack Appの承認手続き、AWSの費用と権限を確認してください。
@@ -16,7 +16,7 @@
 - メールアドレス、電話番号、トークンなどの投稿前検査
 - 意図判定による登録・追記の振り分け、版履歴と「元に戻す」、祝日の共有スキップ、失敗通知（[事例の登録・追記と版履歴](docs/case-updates.md)、[運用](docs/operations.md)）
 
-Google Driveからの資料取り込み、Slackメッセージ内のURL読み取り、公開Web検索、グラフィックレコーディング画像の生成は任意機能です。初期設定では無効です。
+Google Driveからの資料取り込み、Slackメッセージ内のURL読み取り、公開Web検索、グラフィックレコーディング画像の生成は任意機能で、初期設定では無効になっています。
 
 ## 構成
 
@@ -43,7 +43,7 @@ flowchart LR
 - Docker
 - 利用するAmazon Bedrockモデルへのアクセス
 
-既定リージョンは `ap-northeast-1`（東京）です。2026年8月13日時点で、[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-regions.html)、[S3 Vectors](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-regions-quotas.html)、[Knowledge Basesで使う多言語埋め込みモデル](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-supported.html)は東京リージョンに対応しています。利用する生成モデルの対応状況は変わるため、デプロイ前にAWSの公式情報とCLIで確認してください。
+既定のリージョンは `ap-northeast-1`（東京）です。2026年8月13日時点で、[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-regions.html)、[S3 Vectors](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-regions-quotas.html)、[Knowledge Basesで使う多言語埋め込みモデル](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-supported.html)は東京リージョンに対応しています。利用する生成モデルの対応状況は変わることがあるため、デプロイ前にAWSの公式情報とCLIで確認してください。
 
 ## セットアップ
 
@@ -57,7 +57,7 @@ npm ci
 
 ### 2. Slackチャンネルを用意
 
-事例の定期共有先となるパブリックチャンネルを作り、チャンネルIDを控えます。チャンネルIDはSlackのチャンネル詳細から確認できます。
+事例の定期共有先にするパブリックチャンネルを作り、チャンネルIDを控えておきます。IDはSlackのチャンネル詳細から確認できます。
 
 ### 3. CDKの設定
 
@@ -71,7 +71,7 @@ npm ci
 }
 ```
 
-任意機能は初期状態で無効です。使う場合は [docs/optional-integrations.md](docs/optional-integrations.md) を確認してください。
+任意機能は初期状態では無効になっているため、使う場合は [docs/optional-integrations.md](docs/optional-integrations.md) を確認してください。
 
 元メッセージへのリンクも保存したい場合は、`slackWorkspaceUrl` に `https://your-workspace.slack.com` の形式でSlackワークスペースURLを設定します。空欄のままでもBotは動作します。
 
@@ -88,7 +88,7 @@ npm run synth
 npx cdk deploy --all
 ```
 
-デプロイ後、CloudFormation outputの `SlackEventsEndpoint` を控えます。
+デプロイが終わったら、CloudFormation outputの `SlackEventsEndpoint` を控えます。
 
 ### 5. Slack Appを作成
 
@@ -102,7 +102,7 @@ npx cdk deploy --all
 | `chat:write` | スレッド返信と定期共有を投稿する |
 | `channels:history` | メンションされたスレッドの文脈を読む |
 
-Event Subscriptionは `app_mention` と `message.channels` です。`message.channels` は、Botの回答の直後にメンションなしで返されたスレッド返信へ答えるために使います。DMとプライベートチャンネルは対象にしません。
+Event Subscriptionは `app_mention` と `message.channels` です。`message.channels` は、Botの回答直後にメンションなしで届いたスレッド返信へ応答するために使います。DMとプライベートチャンネルは対象外です。
 
 ### 6. Slackの認証情報を登録
 
@@ -142,11 +142,11 @@ Botを定期共有先のチャンネルへ追加し、メンションして動�
 
 - SlackのSigning SecretとBot TokenはParameter Storeの `SecureString` に保存します。
 - Slackから受け取ったリクエストは署名と時刻を検証します。
-- メールアドレス、電話番号、認証情報らしい文字列を検出した場合は伏せ字化または処理を停止します。
+- メールアドレス、電話番号、認証情報らしい文字列を検出した場合は、伏せ字にするか処理を停止します。
 - Slackのraw messageは事例データとして保存しません。
 - 公開Web検索などの外部連携は既定で無効です。
 
-機械的な検査だけで、組織の機密情報を完全に判定することはできません。利用前に [docs/privacy-and-data-handling.md](docs/privacy-and-data-handling.md) を読み、保存してよい情報を組織内で決めてください。
+機械的な検査だけでは、組織の機密情報を完全には判定できません。利用前に [docs/privacy-and-data-handling.md](docs/privacy-and-data-handling.md) を読み、保存してよい情報を組織内で決めてください。
 
 ## 開発
 
@@ -156,7 +156,7 @@ npm test
 npm run check:public
 ```
 
-Python側のテストは、GitHub Actionsと同じロック済み依存関係で実行します。
+Python側のテストは、GitHub Actionsと同じロック済みの依存関係を使って実行します。
 
 ```sh
 uv run --with-requirements agentcore-runtime/requirements-dev.txt \
